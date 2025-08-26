@@ -1,0 +1,50 @@
+name: Build EXE
+
+
+on:
+workflow_dispatch: {}
+push:
+branches: [ main ]
+
+
+jobs:
+build-windows:
+runs-on: windows-latest
+steps:
+- name: Checkout
+uses: actions/checkout@v4
+
+
+- name: Setup Python
+uses: actions/setup-python@v5
+with:
+python-version: '3.11'
+
+
+- name: Install deps
+run: |
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install pyinstaller
+
+
+- name: Build EXE (onefile)
+run: |
+pyinstaller --onefile src/fop_generator.py \
+--name FOP-Generator \
+--add-data "assets/CPG3200.pdf;assets/" || echo "No template found, continuing"
+
+
+- name: Package artifact
+run: |
+mkdir artifact
+copy dist\FOP-Generator.exe artifact\FOP-Generator.exe
+if exist assets\CPG3200.pdf copy assets\CPG3200.pdf artifact\CPG3200.pdf
+powershell -Command "Compress-Archive -Path artifact\* -DestinationPath FOP-Generator.zip"
+
+
+- name: Upload artifact
+uses: actions/upload-artifact@v4
+with:
+name: FOP-Generator
+path: FOP-Generator.zip  
